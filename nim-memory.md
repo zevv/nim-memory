@@ -72,11 +72,16 @@ purposes and have very different characteristics.
 === Stacks
 
 A stack is a region of memory where data is always added and removed from one
-end. This is called "last-in-first-out" (LIFO). Compare this with a stack of
-plates in a restaurant: new plates are taken out of the dishwasher and added on
-top; when plates are needed, they are also taken from the top. Plates are never
-inserted halfway or on the bottom, and plates are never taken from the middle
-or bottom of the stack.
+end. This is called "last-in-first-out" (LIFO).
+
+
+==== Stack theory
+
+A good analogy for a stack is a stack of plates in a restaurant kitchen: new
+plates are taken out of the dishwasher and added on top; when plates are
+needed, they are also taken from the top. Plates are never inserted halfway or
+on the bottom, and plates are never taken from the middle or bottom of the
+stack.
 
 For historical reasons, computer stacks usually work top down: new data is
 added to and removed from the bottom of the stack, but this does not change the
@@ -90,7 +95,7 @@ mechanism itself.
   +--------------+ <-- stack pointer
   |              |
   |              | | new data added
-  :   free       : v on the bottom
+  :    free      : v on the bottom
 
 The administration for a stack is pretty simple: the program maintains needs to
 keep track of single address which points to the current stack bottom. When
@@ -98,18 +103,65 @@ data is added to the stack, it is copied in place and the stack pointer is
 decreased. When data is removed from the stack, it is copied out and the stack
 pointer is again increased.
 
-todo: stacks and threading, call stack, stack frames
+==== Stacks in practice
+
+In Nim, C and most other compiled languages, the stack is used for two
+different purposes: 
+
+- first it is used as a place to store temporary local variables. These
+  variables only exist in a function as long as the function is active (i.e. it
+  has not returned).
+
+- the compiler also uses the stack for a different kind of bookkeeping: every
+  time a function is called, the address of the next instruction after the
+  `call` instruction is placed on the stack - this is the _return address_.
+  When the function returns, it finds that address on the stack, and jumps to
+  it.
+
+During program execution, this is what the stack will typically look like:
+
+  +----------------+ <-- stack top
+  | return address |
+  | variable       | <-- stack frame #1
+  | variable       |
+  | ...            |
+  +----------------+
+  | return address |
+  | variable       | <-- stack frame #2
+  | ...            |
+  +----------------+ <-- stack pointer
+  |     free       |
+  :                :
+
+Using the stack for both data and return addresses is a pretty neat trick and
+has the nice side effect of offering automatic storage allocation and cleanup
+for data in a program.
+
+Stacks also work nicely with threads: each thread simply has its own stack,
+storing its own local variables and holding is own stack frames.
+
+Now you know where Nim gets the information from when it generates a _stack
+trace_ when it hits a run time error or exception: It will find the address of
+the innermost active function on the stack, and print its name. Then it goes
+looking further up the stack for the next level active function, all the way to
+the top. 
 
 
 === Heaps
 
+Next to the stack, the heap is the other place to store data in a computer
+program. While the stack is typically used to hold local variables, the heap
+can be used for more dynamic storage.
+
+==== Heap theory
+
 A heap is a region of memory which is a bit like a warehouse. The memory region
 is called the _arena_:
 
-  +--------------+
+  :              : ^ heap can grow at the top
+  |              | |
   |              |
-  |              |
-  |    free!     |
+  |    free!     | <--- The heap arena
   |              |
   |              |
   +--------------+
@@ -123,56 +175,142 @@ at that address and size is now taken, and it returns the address to the
 program. The program can now store and retrieve its data from this area in
 memory at will.
 
-  +--------------+
-  |              |
+  :              :
   |    free      |
   |              |
   +--------------+
-  |   allocated  | <--- allocation address
+  |  allocated   | <--- allocation address
+  +--------------+ 
+
+The above process can be repeated, allocating other blocks on the heap, some of 
+different sizes:
+  
+  :              :
+  |    free      |
+  +--------------+
+  |              |
+  | allocated #3 |
+  |              |
+  +--------------+
+  | allocated #2 |
+  +--------------+
+  | allocated #1 |
   +--------------+ 
 
 When the data block is no longer used, the program will tell the memory
 allocator the address of the block. The allocator looks up the address in the
-ledger, and removes the entry. This block is now free for future use.
+ledger, and removes the entry. This block is now free for future use. This
+is what the above picture looks like when block #2 is released:
 
-todo: fragmentation, realloc
+  :              :
+  |    free      |
+  +--------------+
+  |              |
+  | allocated #3 |
+  |              |
+  +--------------+
+  |    free      | <-- There's a hole in the heap!
+  +--------------+
+  | allocated #1 |
+  +--------------+ 
+
+As you can see, the freeing of block #2 now leaves a hole in the heap, which
+might lead to problems in the future. Consider the next allocation request:
+
+- If the size of the next allocation is smaller then the size of the hole, the
+  allocator might reuse the free space in the hole; but since the new request
+  is smaller, a new smaller hole will be left after the new block
+
+- If the size of the next allocation is bigger then the size of the hole, the
+  allocator has to find a bigger free spot somewhere, leaving the hole open.
+
+The only way to effectively reuse the hole is if the next allocation is of the
+exact same size of the hole.
+
+Heavy use of a heap with a lot of different sized objects might lead to a
+phenomenom called _fragmentation_. This means that the allocator is not able to
+effectively use 100% of the arena size to fulfil allocation requests,
+effectively wasting a part of the available memory.
+
+
+==== The heap in practice
+
+In Nim, the `new()` proc is typically used allocate memory on the heap for a
+new object:
+
+----
+type Thing = object
+  a: int
+
+var t = new Thing
+----
+
+The above snippet will allocate memory on the heap to store an object of type
+`Thing` The _address_ of the newly allocated memory block is returned by `new`,
+which is now of type `ref Thing`.
+
+A `ref T` is a special kind of pointer, and Nim can do most of the magic for you
+to make it easier to work with it. You can use a `ref object` just as if it was
+a normal object on the stack, and Nim will make sure the right thing happens.
+
+
+todo: garbage collector
+
 
 
 == Memory organization in Nim
 
-As long as you stick to the _safe_ parts of the Nim language, it will take care
-of managing memory allocations for you. It will make sure your data is stored
-at the appropriate place, and freed when you no longer need it. However, if the
+As long as you stick to the _safe_ parts of the language, Nim will take care of
+managing memory allocations for you. It will make sure your data is stored at
+the appropriate place, and freed when you no longer need it. However, if the
 need arises, Nim offers you full control as well, allowing you to choose
 exactly how and where to store your data.
-
-todo: garbage collector, newruntime
 
 Nim offers some handy functions to allow you to inspect how your data is
 organized in memory:
 
-`addr(x)`:: This proc returns the address of variable `x`. For a variable of type `T`,
-            its address will have type `ptr T`
+`addr(x)`:: This proc returns the address of variable `x`. For a variable of
+            type `T`, its address will have type `ptr T`
+
+`unsafeAddr(x)`:: This proc is basically the same as `addr()`, but it can be
+                  used even if Nim thinks it would not be safe to get the address
+		  of an object - more on this later.
 
 `sizeof(x)`:: Returns the size of variable `x` in bytes
 
-`repr(x)`:: Pretty format expression `x`
+
+The result of `addr(x)` and `unsafeAddr(x)` on an object of type `T` has a
+result of type `addr T`. Nim does not know how to print this by default, so we
+will make use of `repr()` to nicely format a `ptr T` type:
+
+----
+var a: int
+echo a.addr.repr
+# ref 0x56274ece0c60 --> 0
+----
 
 
-=== Local variables
+=== The stack: local variables
 
 Local variables (also called _automatic_ variables) are the default method by
 which Nim stores your variables and data.
 
-Nim will reserve space for the variable on the stack, and it will stay there as
-long as it is in scope. In practice, this means that the variable will exist as
-long as the function in which it is declared does not return. As soon as the
+Nim will reserve space for your variable on the stack, and it will stay there
+as long as it is in scope. In practice, this means that the variable will exist
+as long as the function in which it is declared does not return. As soon as the
 function returns the stack _unwinds_ and the variables are gone.
 
-The above is best explained with a simple example: this snippet first creates a
-variable `a` of type `int` and prints this variable and its size.  Then it will
-create a second variable `b` of type `ptr int` which is called a _pointer_, and
-now holds the _address_ of variable `a`.
+
+==== Primitive types
+
+A _primitive_ or _scalar_ type is a "single" value like an `int`, a `bool` or a
+`float`.  Scalars are usually kept on the stack, unless they are part of a
+container type like an object.
+
+Let's see how Nim manages memory for primitive types for us. The snippet below
+first creates a variable `a` of type `int` and prints this variable and its
+size.  Then it will create a second variable `b` of type `ptr int` which is
+called a _pointer_, and now holds the _address_ of variable `a`.
 
 ----
 var a = 9
@@ -186,10 +324,10 @@ echo sizeof(b)
 
 On my machine I might get the following output:
 
-  9                       <1>
-  8                       <2>
-  ref 0x30000000 --> 9    <3>
-  8                       <4>
+  9  <1>
+  8  <2>
+  ref 0x30000000 --> 9 <3>
+  8  <4>
 
 <1> No surprise here: this is the value of variable `a`
 
@@ -218,16 +356,183 @@ The above can be represented by the following diagram:
               +---------------------------------------+
 
 
+==== Arrays
+
+todo
 
 
+==== Compound types
 
-=== Refs
+Let's put a more complicated object on the stack and see what happens:
+
+----
+type Thing = object <1>
+  a: uint32
+  b: uint8
+  c: uint16
+
+var t: Thing <2>
+
+echo "size t   ", t.sizeof  <3>
+echo "size t.a ", t.a.sizeof
+echo "size t.b ", t.b.sizeof
+echo "size t.b ", t.c.sizeof
+
+echo "addr t   ", t.addr.repr  <4>
+echo "addr t.a ", t.a.addr.repr
+echo "addr t.b ", t.b.addr.repr
+echo "addr t.c ", t.c.addr.repr
+----
+
+<1> The definition of our object type `Thing`, which holds integers of various
+    sizes
+
+<2> Create a variable `t` of type `Thing`
+
+<3> Print the size of `t` and all its fields
+
+<4> Print the address of `t` and all its fields
+
+In Nim, an object is just a way of grouping variables into a handy container,
+making sure they are placed next to each other in memory the same way as C
+would do.
+
+Here is the output on my machine:
+
+----
+size t.a 4  <1>
+size t.b 1
+size t.b 2
+size t   8  <2>
+addr t   ref 0x30000000 --> [a = 0, b = 0, c = 0]  <3>
+addr t.a ref 0x30000000 --> 0  <4>
+addr t.b ref 0x30000004 --> 0
+addr t.c ref 0x30000006 --> 0  <5>
+----
+
+Lets go through the output:
+
+<1> First we get the size of fields of the object. `a` was declared as an `uint32`, which
+    is 4 bytes big, `b` is an `uint8` which is 1 byte, and `c` is an `uint16` which is 2 bytes
+    big. check!
+
+<2> Here is a bit of a surprise: we print the size of the container object `t`, which seems
+    to be 8 bytes big. But that does not add up, as the contents of the object is
+    only 4+1+2 = 7 bytes! More on this below.
+
+<3> Let's get the address of the object `t`: on my machine it was placed on
+    address `0x30000000` on the stack.
+
+<4> Here we can see that the field `t.a` lies at exactly the same place in memory as the object
+    itself: `0x30000000`. The address of `t.b` is `0x30000004`, which is 4
+    bytes after `t.a`. That makes sense, since `t.a` is four bytes big.
+
+<5> The address of `t.c` is `0x30000006`, which is 2 (!) bytes after `t.b`, but `t.b` is only
+    one byte big?
+
+So, let's draw a little picture of what we have learned from the above:
+
+----
+                00   01   02   03   04   05   06   07
+              +-------------------+----+----+---------+
+ 0x30000000:  | a                 | b  | ?? | c       |    <- object t
+              +-------------------+----+----+---------+
+              ^                   ^         ^ 
+	      |                   |         |
+           address of           addr       addr
+	   t and t.a           of t.b     of t.c
+----
+
+So this is what our `Thing` object looks like in memory.  So what is up with
+the hole marked `??` at offset 5, and why is the total size not 7 but 8 bytes?
+
+This is caused by something the compiler does which is called _alignment_, to
+make it easier for the CPU to access the data in memory. By making sure objects
+are nicely aligned in memory at a multiple of their size (or a multiple of the
+architecture's word size), the CPU can access the memory more efficiently. This
+usually results in faster code, at the price of wasting some memory.
+
+(You can hint the Nim compiler not to do alignment but to place the fields of
+an object back-to-back in memory using the `{.packed.}` pragma - refer to the
+Nim language manual for details)
+
+
+=== The heap: refs
+
+todo
+
+
+== Complex data types
+
+The above sections described how Nim manages relativily simple static objects
+in memory. This section will go into the implementation of more complex and
+dynamic data types which are part of the Nim language: strings and seqs.
 
 === Strings and seqs
 
-=== Objects
+In Nim, the `string` and `seq` data types are closely related. These are
+basically a long row of objects of the same type (chars for a strings, any
+other type for seqs). What is different for these types is that they can
+dynamically grow or shrink in memory.
 
-=== Sum types
+Lets create a `seq` and do some experiments with it:
+
+----
+var a = @[ 30, 40, 50 ]
+----
+
+Let's ask Nim what the type of variable `a` is:
+
+----
+import typetraits
+var a = @[ 30, 40, 50 ]
+echo a.type.name   # -> seq[int]
+----
+
+We see the type is `seq[int]`, which is what we expected.
+
+Now, lets see where Nim stores the data:
+
+----
+var a = @[ 0x30, 0x40, 0x50 ]
+echo a.addr.repr         # 0x30000000 <1>
+echo a[0].addr.repr      # 0x90000000 <2>
+echo a[1].addr.repr      # 0x90000008 <3>
+----
+
+<1> The variable `a` itself is placed on the stack, which happens to be at
+    address `0x30000000` on my machine.
+
+<2> `a[0]` is the first element of the seq, and here we see that the address
+    of this first element is not even close to the object `a` itself. Instead, Nim
+    placed this in the heap, at address `0x90000000`. We will see the reason for
+    this later.
+
+<3> The second item in the seq is `a[1]`, which is placed at address `0x90000008`.
+    This makes perfect sense, as the size of an `int` in nim is 8 bytes, and all
+    ints in the seq are placed back-to-back in memory.
+
+Let's make a little drawing again. We know `a` is something on the stack, and
+that this something refers to three elements which are placed next to each
+other on the heap:
+
+              +---------------------------------------+
+ 0x30000000   | ?? | ?? | ?? | ?? | ?? | ?? | ?? | ?? | a: seq[int]
+              +---------------------------------------+
+                                  |
+                                  v
+              +---------------------------------------+
+ 0x90000000   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 30 |
+              +---------------------------------------+
+ 0x90000008   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 40 |
+              +---------------------------------------+
+ 0x90000010   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 50 |
+              +---------------------------------------+
+
+
+todo: fully explain seq implementation?
+
+=== Tables
 
 
 
