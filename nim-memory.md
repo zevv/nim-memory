@@ -282,8 +282,8 @@ organized in memory:
 
 
 The result of `addr(x)` and `unsafeAddr(x)` on an object of type `T` has a
-result of type `addr T`. Nim does not know how to print this by default, so we
-will make use of `repr()` to nicely format a `ptr T` type:
+result of type `ptr T`. Nim does not know how to print this by default, so we
+will make use of `repr()` to nicely format a the type for us:
 
 ----
 var a: int
