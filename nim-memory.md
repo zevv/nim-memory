@@ -4,6 +4,8 @@
 
 todo: better title!
 
+This is a document in progress, any comments are much appreciated. The source
+can be found in github at https://github.com/zevv/nim-memory
 
 == Introduction
 
