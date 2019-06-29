@@ -2,8 +2,11 @@
 = Nim memory
 Ico Doornekamp <nim@zevv.nl>
 :toc:
+:toclevels: 4
 :icons: font
+:doctype: book
 :stylesheet: style.css
+:nofooter:
 
 todo: better title!
 
@@ -145,7 +148,12 @@ different purposes:
   When the function returns, it finds that address on the stack, and jumps to
   it.
 
-During program execution, this is what the stack will typically look like:
+The combination of the above two data types make up a _stack frame_: this is a
+section of the stack which holds the return address of the current active
+function, together with all its local variables.
+
+During program execution, this is what the stack will look like if your program
+is nested two functions deep:
 
   +----------------+ <-- stack top
   | return address |
@@ -373,8 +381,8 @@ On my machine I might get the following output:
 The above can be represented by the following diagram:
 
             +---------------------------------------+
- 0x??????:  | 00 | 00 | 00 | 00 | 30 | 00 | 00 | 00 | b: ptr int = 0x300000
-            +---------------------------------------+
+ 0x??????:  | 00 | 00 | 00 | 00 | 30 | 00 | 00 | 00 | b: ptr int =
+            +---------------------------------------+    0x300000
                                 |
                                 |
                                 v
@@ -462,7 +470,7 @@ So, let's draw a little picture of what we have learned from the above:
 ----
               00   01   02   03   04   05   06   07
             +-------------------+----+----+---------+
- 0x300000:  | a                 | b  | ?? | c       |    <- object t
+ 0x300000:  | a                 | b  | ?? | c       |
             +-------------------+----+----+---------+
             ^                   ^         ^ 
             |                   |         |
@@ -489,20 +497,20 @@ Nim language manual for details)
 todo
 
 
-== Complex data types
+=== Complex data types
 
 The above sections described how Nim manages relativily simple static objects
 in memory. This section will go into the implementation of more complex and
 dynamic data types which are part of the Nim language: strings and seqs.
 
-=== Strings and seqs
+==== Strings and seqs
 
 In Nim, the `string` and `seq` data types are closely related. These are
 basically a long row of objects of the same type (chars for a strings, any
 other type for seqs). What is different for these types is that they can
 dynamically grow or shrink in memory.
 
-==== Seq internals
+===== Seq internals
 
 Lets create a `seq` and do some experiments with it:
 
@@ -579,10 +587,10 @@ by the elements of our seq:
 
 This almost explains all of the seq, except for the 16 unknown bytes at the
 start of the heap block. This area is where Nim stores its internal information
-about the seq, of which the most important is the seqs length.
+about the seq, the most important of which is the seq's length.
 
 
-==== Growing a seq
+===== Growing a seq
 
 The little snippet below creates a seq, and fills it with the numbers 0..7.
 Each iteration it will show what happens:
@@ -632,7 +640,7 @@ ref 0x300000 --> 0x9001b0@[0, 1, 2, 3, 4, 5, 6, 7]
     fit the 5th item, so the whole seq is moved to another place, and the allocation
     is scaled up to hold 8 elements.
 
-=== Tables
+==== Tables
 
 todo
 
