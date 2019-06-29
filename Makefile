@@ -6,4 +6,4 @@ clean:
 	rm -f nim-memory.html
 
 div: nim-memory.html
-	todiv nim-memory.html *jpg
+	todiv nim-memory.html

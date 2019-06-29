@@ -326,7 +326,7 @@ On my machine I might get the following output:
 
   9  <1>
   8  <2>
-  ref 0x30000000 --> 9 <3>
+  ref 0x300000 --> 9 <3>
   8  <4>
 
 <1> No surprise here: this is the value of variable `a`
@@ -335,7 +335,7 @@ On my machine I might get the following output:
     happens to be the default size for `int` types in Nim. So far so good.
 
 <3> This line shows a representation of variable `b`. `b` holds the address
-    of variable `a`, which happens to live at address `0x30000000`. In Nim an
+    of variable `a`, which happens to live at address `0x300000`. In Nim an
     address is known as a _ref_ or a _pointer_.
 
 <4> `b` itself is also a variable, which is not of the type `ptr int`. On
@@ -345,15 +345,15 @@ On my machine I might get the following output:
 
 The above can be represented by the following diagram:
 
-              +---------------------------------------+
- 0x????????:  | 00 | 00 | 00 | 00 | 30 | 00 | 00 | 00 | b: ptr int = 0x30000000
-              +---------------------------------------+
-                                  |
-                                  |
-                                  v
-              +---------------------------------------+
- 0x30000000:  | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 09 | a: int = 9
-              +---------------------------------------+
+            +---------------------------------------+
+ 0x??????:  | 00 | 00 | 00 | 00 | 30 | 00 | 00 | 00 | b: ptr int = 0x300000
+            +---------------------------------------+
+                                |
+                                |
+                                v
+            +---------------------------------------+
+ 0x300000:  | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 09 | a: int = 9
+            +---------------------------------------+
 
 
 ==== Arrays
@@ -404,10 +404,10 @@ size t.a 4  <1>
 size t.b 1
 size t.b 2
 size t   8  <2>
-addr t   ref 0x30000000 --> [a = 0, b = 0, c = 0]  <3>
-addr t.a ref 0x30000000 --> 0  <4>
-addr t.b ref 0x30000004 --> 0
-addr t.c ref 0x30000006 --> 0  <5>
+addr t   ref 0x300000 --> [a = 0, b = 0, c = 0]  <3>
+addr t.a ref 0x300000 --> 0  <4>
+addr t.b ref 0x300004 --> 0
+addr t.c ref 0x300006 --> 0  <5>
 ----
 
 Lets go through the output:
@@ -421,26 +421,26 @@ Lets go through the output:
     only 4+1+2 = 7 bytes! More on this below.
 
 <3> Let's get the address of the object `t`: on my machine it was placed on
-    address `0x30000000` on the stack.
+    address `0x300000` on the stack.
 
 <4> Here we can see that the field `t.a` lies at exactly the same place in memory as the object
-    itself: `0x30000000`. The address of `t.b` is `0x30000004`, which is 4
+    itself: `0x300000`. The address of `t.b` is `0x300004`, which is 4
     bytes after `t.a`. That makes sense, since `t.a` is four bytes big.
 
-<5> The address of `t.c` is `0x30000006`, which is 2 (!) bytes after `t.b`, but `t.b` is only
+<5> The address of `t.c` is `0x300006`, which is 2 (!) bytes after `t.b`, but `t.b` is only
     one byte big?
 
 So, let's draw a little picture of what we have learned from the above:
 
 ----
-                00   01   02   03   04   05   06   07
-              +-------------------+----+----+---------+
- 0x30000000:  | a                 | b  | ?? | c       |    <- object t
-              +-------------------+----+----+---------+
-              ^                   ^         ^ 
-	      |                   |         |
-           address of           addr       addr
-	   t and t.a           of t.b     of t.c
+              00   01   02   03   04   05   06   07
+            +-------------------+----+----+---------+
+ 0x300000:  | a                 | b  | ?? | c       |    <- object t
+            +-------------------+----+----+---------+
+            ^                   ^         ^ 
+            |                   |         |
+         address of           addr       addr
+         t and t.a           of t.b     of t.c
 ----
 
 So this is what our `Thing` object looks like in memory.  So what is up with
@@ -475,6 +475,8 @@ basically a long row of objects of the same type (chars for a strings, any
 other type for seqs). What is different for these types is that they can
 dynamically grow or shrink in memory.
 
+==== Seq internals
+
 Lets create a `seq` and do some experiments with it:
 
 ----
@@ -491,49 +493,121 @@ echo a.type.name   # -> seq[int]
 
 We see the type is `seq[int]`, which is what we expected.
 
-Now, lets see where Nim stores the data:
+Now, lets add some code to see how Nim stores the data:
 
 ----
 var a = @[ 0x30, 0x40, 0x50 ]
-echo a.addr.repr         # 0x30000000 <1>
-echo a[0].addr.repr      # 0x90000000 <2>
-echo a[1].addr.repr      # 0x90000008 <3>
+echo a.repr
+echo a.len
+echo a[0].addr.repr
+echo a[1].addr.repr
 ----
 
+And here is the output on my machine:
+
+----
+ref 0x300000 --> 0x900048@[0x30, 0x40, 0x50]  <1>
+3 <2>
+ref 0x900058 --> 0x30  <3>
+ref 0x900060 --> 0x40  <4>
+----
+
+What can we deduce from this?
+
 <1> The variable `a` itself is placed on the stack, which happens to be at
-    address `0x30000000` on my machine.
+    address `0x300000` on my machine. A is some kind of pointer that points to
+    address `0x900048` which is on the heap! And this is where the actual seq
+    lives.
 
-<2> `a[0]` is the first element of the seq, and here we see that the address
-    of this first element is not even close to the object `a` itself. Instead, Nim
-    placed this in the heap, at address `0x90000000`. We will see the reason for
-    this later.
+<2> This seq contains 3 elements, just as it should be.
 
-<3> The second item in the seq is `a[1]`, which is placed at address `0x90000008`.
+<3> `a[0]` is the first element of the seq. Its value is `0x30`, and i is stored
+    at address `0x900058`, which is right after the seq itself
+
+<4> The second item in the seq is `a[1]`, which is placed at address `0x900060`.
     This makes perfect sense, as the size of an `int` in nim is 8 bytes, and all
     ints in the seq are placed back-to-back in memory.
 
-Let's make a little drawing again. We know `a` is something on the stack, and
-that this something refers to three elements which are placed next to each
-other on the heap:
+Let's make a little drawing again. We know `a` is a pointer living on the
+stack, which refers to something on the heap with a size of 16 bytes, followed
+by the elements of our seq:
 
-              +---------------------------------------+
- 0x30000000   | ?? | ?? | ?? | ?? | ?? | ?? | ?? | ?? | a: seq[int]
-              +---------------------------------------+
-                                  |
-                                  v
-              +---------------------------------------+
- 0x90000000   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 30 |
-              +---------------------------------------+
- 0x90000008   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 40 |
-              +---------------------------------------+
- 0x90000010   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 50 |
-              +---------------------------------------+
+              stack 
+            +---------------------------------------+
+ 0x300000   | 00 | 00 | 00 | 00 | 90 | 00 | 00 | 48 | a: seq[int]
+            +---------------------------------------+
+                                |
+              heap              v
+            +---------------------------------------+
+ 0x900048   | ?? | ?? | ?? | ?? | ?? | ?? | ?? | ?? |
+            +---------------------------------------+
+ 0x900050   | ?? | ?? | ?? | ?? | ?? | ?? | ?? | ?? |
+            +---------------------------------------+
+ 0x900058   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 30 | a[0] = 0x30
+            +---------------------------------------+
+ 0x900060   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 40 | a[1] = 0x40
+            +---------------------------------------+
+ 0x900068   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 50 | a[2] = 0x50
+            +---------------------------------------+
+
+This almost explains all of the seq, except for the 16 unknown bytes at the
+start of the heap block. This area is where Nim stores its internal information
+about the seq, of which the most important is the seqs length.
 
 
-todo: fully explain seq implementation?
+==== Growing a seq
+
+The little snippet below creates a seq, and fills it with the numbers 0..7.
+Each iteration it will show what happens:
+
+----
+var a: seq[int]
+echo a.repr
+
+for i in 0..7:
+  a.add i
+  echo a.addr.repr
+----
+
+Here is the output, see if you can spot the interesting bits:
+
+----
+ref 0x300000 --> 0x900048@[0]  <1>
+ref 0x300000 --> 0x900078@[0, 1] <2>
+ref 0x300000 --> 0x9000c8@[0, 1, 2] <3>
+ref 0x300000 --> 0x9000c8@[0, 1, 2, 3]
+ref 0x300000 --> 0x9001b0@[0, 1, 2, 3, 4] <4>
+ref 0x300000 --> 0x9001b0@[0, 1, 2, 3, 4, 5]
+ref 0x300000 --> 0x9001b0@[0, 1, 2, 3, 4, 5, 6]
+ref 0x300000 --> 0x9001b0@[0, 1, 2, 3, 4, 5, 6, 7]
+----
+
+<1> Here Nim shows us the seq: the ref lives at address `0x300000`,
+    which is on the stack. The actual seq data is placed on the heap
+    at address `0x900048`
+
+<2> Something happened here: the ref to our seq still lives a the same place
+    on the stack, but it now points to a different address! The reason for this
+    is that the inital memory allocation for the seq data on the heap was not
+    large enough to fit the new element, so Nim had to find a larger chunk of
+    memory to hold the data. It is likely that the allocator already reserved
+    the area directly behind the seq to something else, so it was not possible
+    to grow this area. Instead, a new allocation somewhere else on the heap was
+    made, the old data of the seq was copied from the old location to the new
+    location, and the new element was added.
+
+<3> The same thing happens here when yet another element is added. Note that
+    for the next `add(3)`, no new allocation was done! The reason for this is
+    that Nim anticipates more data to be added to the seq, and grows its memory
+    area in powers of two: the block is now large enough to hold 4 elements
+
+<4> And here the same happens once more: The block is not large enough to
+    fit the 5th item, so the whole seq is moved to another place, and the allocation
+    is scaled up to hold 8 elements.
 
 === Tables
 
+todo
 
 
 
