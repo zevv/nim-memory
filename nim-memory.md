@@ -1,6 +1,9 @@
 
 = Nim memory
+Ico Doornekamp <nim@zevv.nl>
 :toc:
+:icons: font
+:stylesheet: style.css
 
 todo: better title!
 
@@ -62,7 +65,29 @@ instruction completes, with each column representing a byte:
   0x100000  | 00 | 01 | 23 | 45 | ..
             +----+----+----+----+----
 
-todo: endianess
+
+=== Endianess
+
+To complicate things a bit more, the actual order of bytes within a word varies
+between CPU types - some CPUs put the most significant byte first, while others
+put the least significant byte first. This is called the _endianess_ of a CPU.
+
+There is a lot to tell about endiannes, but just remember these few things,
+and you should generally be fine:
+
+- Intel compatible CPUs (x86, amd64) are little endian. The integer 0x1234 is
+  stored with the *least* significant byte first: `0x34 0x21`
+
+- ARM CPUs are big endian. The integer 0x1234 is stored with the *most*
+  significant byte first: `0x12 0x34`. Most network protocols serialize data in
+  big endian order when sending it out on the network; this is why big endian
+  is also know as _network endian_.
+
+- Most important of all: if you want to write portable code, do not ever
+  make any assumptions about your machines endianess when writing binary data
+  to disk or over the network and make sure to explicitly convery your data
+  to the proper endianess.
+
 
 == Two ways to organize memory
 
