@@ -99,11 +99,11 @@ mechanism itself.
   |              | | new data added
   :    free      : v on the bottom
 
-The administration for a stack is pretty simple: the program maintains needs to
-keep track of single address which points to the current stack bottom. When
-data is added to the stack, it is copied in place and the stack pointer is
-decreased. When data is removed from the stack, it is copied out and the stack
-pointer is again increased.
+The administration for a stack is pretty simple: the program needs to keep
+track of only one address which points to the current stack bottom - this is
+commonly know as the _stack pointer_. When data is added to the stack, it is
+copied in place and the stack pointer is decreased. When data is removed from
+the stack, it is copied out and the stack pointer is again increased.
 
 ==== Stacks in practice
 
