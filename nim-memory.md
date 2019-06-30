@@ -273,8 +273,9 @@ effectively wasting a part of the available memory.
 
 ==== The heap in practice
 
-In Nim, the `new()` proc is typically used allocate memory on the heap for a
-new object:
+In Nim, all your data is stored on the stack, unless you explicitly request it
+to go on the heap: the `new()` proc is typically used allocate memory on the
+heap for a new object:
 
 ----
 type Thing = object
@@ -285,15 +286,8 @@ var t = new Thing
 
 The above snippet will allocate memory on the heap to store an object of type
 `Thing` The _address_ of the newly allocated memory block is returned by `new`,
-which is now of type `ref Thing`.
-
-A `ref T` is a special kind of pointer, and Nim can do most of the magic for you
-to make it easier to work with it. You can use a `ref object` just as if it was
-a normal object on the stack, and Nim will make sure the right thing happens.
-
-
-todo: garbage collector
-
+which is now of type `ref Thing`. A `ref` is a special kind of pointer which is
+generally managed by Nim for you. More on this in the section 'The heap' below.
 
 
 == Memory organization in Nim
@@ -305,7 +299,8 @@ need arises, Nim offers you full control as well, allowing you to choose
 exactly how and where to store your data.
 
 Nim offers some handy functions to allow you to inspect how your data is
-organized in memory:
+organized in memory. These will be used in the examples in the sections below
+to inspect how and where Nim stores your data:
 
 `addr(x)`:: This proc returns the address of variable `x`. For a variable of
             type `T`, its address will have type `ptr T`
@@ -327,6 +322,8 @@ echo a.addr.repr
 # ref 0x56274ece0c60 --> 0
 ----
 
+todo: explain poinert usage, automatic dereferencing
+
 
 === The stack: local variables
 
@@ -337,6 +334,48 @@ Nim will reserve space for your variable on the stack, and it will stay there
 as long as it is in scope. In practice, this means that the variable will exist
 as long as the function in which it is declared does not return. As soon as the
 function returns the stack _unwinds_ and the variables are gone.
+
+Here are some examples of variables which will be stored on the stack:
+
+----
+type Thing = object
+  a, b: int
+
+var a: int
+var b = 14
+var t: Thing
+var t = Thing(a: 5, b: 18)
+----
+
+
+=== The heap: managed pointers and the garbage collector
+
+In the previous sections we saw that pointers in Nim as returned by `addr()`
+are of the type `ptr T`, but we saw that `new` returns a `ref T`.
+
+While both `ptr` and `ref` are pointers to data, there is an imporant
+difference between the two:
+
+- a `ptr T` is just a pointer - a variable holding an adress which points to
+  data living elsewhere.
+
+- a `ref T` is a _managed pointer_: this also is an address pointing to
+  something else, but Nim will keep track of data it points to for you, and
+  make sure this will be freed when it is no longer needed.
+
+
+The only way to acquire a `ref T` pointer is to allocate the memory use
+`new()`. Nim will reserve the memory for you, and also will start keeping track
+of where in the code this data is referenced. When the Nim runtime sees that
+the data is no longer referred to, it knows it is safe to discard it and it
+will automatically free it for you. This is known as _garbage collection_, or
+_GC_ for short.
+
+
+== How Nim stores data in memory
+
+This section will show some experiments where we investigate how Nim stores
+various data types in memory. 
 
 
 ==== Primitive types
@@ -450,11 +489,11 @@ addr t.c ref 0x300006 --> 0  <5>
 
 Lets go through the output:
 
-<1> First we get the size of fields of the object. `a` was declared as an `uint32`, which
+<1> First get the size of fields of the object. `a` was declared as an `uint32`, which
     is 4 bytes big, `b` is an `uint8` which is 1 byte, and `c` is an `uint16` which is 2 bytes
     big. check!
 
-<2> Here is a bit of a surprise: we print the size of the container object `t`, which seems
+<2> Here is a bit of a surprise: print the size of the container object `t`, which seems
     to be 8 bytes big. But that does not add up, as the contents of the object is
     only 4+1+2 = 7 bytes! More on this below.
 
@@ -495,9 +534,7 @@ an object back-to-back in memory using the `{.packed.}` pragma - refer to the
 Nim language manual for details)
 
 
-=== The heap: refs
 
-todo
 
 
 === Complex data types
@@ -529,7 +566,7 @@ var a = @[ 30, 40, 50 ]
 echo a.type.name   # -> seq[int]
 ----
 
-We see the type is `seq[int]`, which is what we expected.
+We see the type is `seq[int]`, which is what was expected.
 
 Now, lets add some code to see how Nim stores the data:
 
@@ -550,7 +587,7 @@ ref 0x900058 --> 0x30  <3>
 ref 0x900060 --> 0x40  <4>
 ----
 
-What can we deduce from this?
+What can be deduced from this?
 
 <1> The variable `a` itself is placed on the stack, which happens to be at
     address `0x300000` on my machine. A is some kind of pointer that points to
