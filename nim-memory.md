@@ -45,6 +45,8 @@ This section gives a brief and abstract introduction (warning: gross
 simplifications ahead!) about computer memory, and what it looks like from the
 point of view of a CPU and a computer program.
 
+=== Word size
+
 A computer's main memory (RAM) consists of a lot of memory locations, each of
 which has an unique address. Depending on the CPU architecture the size of each
 memory location (the "word size") typically varies between one byte (8 bit) to
@@ -88,7 +90,7 @@ and you should generally be fine:
 
 - Most important of all: if you want to write portable code, do not ever
   make any assumptions about your machines endianess when writing binary data
-  to disk or over the network and make sure to explicitly convery your data
+  to disk or over the network and make sure to explicitly convert your data
   to the proper endianess.
 
 
@@ -96,10 +98,11 @@ and you should generally be fine:
 
 Traditionally, C programs use two common methods used for organizing objects in
 computer memory: the _stack_ and the _heap_. Both methods serve different
-purposes and have very different characteristics.
+purposes and have very different characteristics. Nim code is compiled to C or
+C++ code, so Nim naturally shares the memory model of these languages.
 
 
-=== Stacks
+=== The stack
 
 A stack is a region of memory where data is always added and removed from one
 end. This is called "last-in-first-out" (LIFO).
@@ -148,8 +151,8 @@ different purposes:
   When the function returns, it finds that address on the stack, and jumps to
   it.
 
-The combination of the above two data types make up a _stack frame_: this is a
-section of the stack which holds the return address of the current active
+The combinated data of the above to mechanisms make up a _stack frame_: this is
+a section of the stack which holds the return address of the current active
 function, together with all its local variables.
 
 During program execution, this is what the stack will look like if your program
@@ -182,7 +185,7 @@ looking further up the stack for the next level active function, all the way to
 the top. 
 
 
-=== Heaps
+=== The heap
 
 Next to the stack, the heap is the other place to store data in a computer
 program. While the stack is typically used to hold local variables, the heap
