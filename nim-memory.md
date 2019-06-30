@@ -624,8 +624,52 @@ by the elements of our seq:
             +---------------------------------------+
 
 This almost explains all of the seq, except for the 16 unknown bytes at the
-start of the heap block. This area is where Nim stores its internal information
-about the seq, the most important of which is the seq's length.
+start of the block: this area is where Nim stores its internal information
+about the seq.
+
+This data is normally hidden from the user, but you can simply find the
+implementation of this header in the Nim system library, and it looks like
+this:
+
+----
+type TGenericSeq = object
+  len: int  <1>
+  reserved: int <2>
+----
+
+<1> The `len` field is used by Nim to store the current length of the seq -
+    that is how many elements are in it.
+
+<2> The `reserved` field is used to keep track of the actual size of the storage
+    inside the seq - for performance reasons Nim might reserve a larger space
+    ahead of time to avoid resizing the seq when new items need to be added.
+
+Let's do a little experiment to inspect what is in the our seq header (unsafe
+code ahead!):
+
+----
+type TGenericSeq = object <1>
+  len, reserved: int
+
+var a = @[10, 20, 30]
+var b = cast[ptr TGenericSeq](a) <2>
+echo b.repr
+----
+
+<1> The original `TGenericSeq` object is not exported from the system lib, so
+    here the same object is defined
+
+<2> Here the variable `a` is casted to the `TGenericSeq` type. 
+
+When we print the result with `echo b.repr`, the output looks like this:
+
+----
+ptr 0x900048 --> [len = 3, reserved = 3]
+----
+
+There we have it: Our seq has a size of 3, and has reserved space for 3
+elements in total. The next section will explain what happens when more fields
+are added to a seq.
 
 
 ==== Growing a seq
@@ -674,9 +718,9 @@ ref 0x300000 --> 0x9001b0@[0, 1, 2, 3, 4, 5, 6, 7]
     that Nim anticipates more data to be added to the seq, and grows its memory
     area in powers of two: the block is now large enough to hold 4 elements
 
-<4> And here the same happens once more: The block is not large enough to
-    fit the 5th item, so the whole seq is moved to another place, and the allocation
-    is scaled up to hold 8 elements.
+<4> And here the same happens once more: The block is not large enough to fit
+    the 5th item, so the whole seq is moved to another place, and the allocation is
+    scaled up to hold 8 elements.
 
 === Tables
 
