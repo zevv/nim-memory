@@ -378,7 +378,7 @@ This section will show some experiments where we investigate how Nim stores
 various data types in memory. 
 
 
-==== Primitive types
+=== Primitive types
 
 A _primitive_ or _scalar_ type is a "single" value like an `int`, a `bool` or a
 `float`.  Scalars are usually kept on the stack, unless they are part of a
@@ -433,12 +433,12 @@ The above can be represented by the following diagram:
             +---------------------------------------+
 
 
-==== Arrays
+=== Arrays
 
 todo
 
 
-==== Compound types
+=== Compound types: objects
 
 Let's put a more complicated object on the stack and see what happens:
 
@@ -535,22 +535,19 @@ Nim language manual for details)
 
 
 
-
-
-=== Complex data types
+=== Strings and seqs
 
 The above sections described how Nim manages relativily simple static objects
 in memory. This section will go into the implementation of more complex and
 dynamic data types which are part of the Nim language: strings and seqs.
 
-==== Strings and seqs
 
 In Nim, the `string` and `seq` data types are closely related. These are
 basically a long row of objects of the same type (chars for a strings, any
 other type for seqs). What is different for these types is that they can
 dynamically grow or shrink in memory.
 
-===== Seq internals
+==== Seq internals
 
 Lets create a `seq` and do some experiments with it:
 
@@ -630,7 +627,7 @@ start of the heap block. This area is where Nim stores its internal information
 about the seq, the most important of which is the seq's length.
 
 
-===== Growing a seq
+==== Growing a seq
 
 The little snippet below creates a seq, and fills it with the numbers 0..7.
 Each iteration it will show what happens:
@@ -680,7 +677,7 @@ ref 0x300000 --> 0x9001b0@[0, 1, 2, 3, 4, 5, 6, 7]
     fit the 5th item, so the whole seq is moved to another place, and the allocation
     is scaled up to hold 8 elements.
 
-==== Tables
+=== Tables
 
 todo
 
