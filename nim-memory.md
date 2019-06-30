@@ -151,7 +151,7 @@ different purposes:
   When the function returns, it finds that address on the stack, and jumps to
   it.
 
-The combinated data of the above to mechanisms make up a _stack frame_: this is
+The combinated data of the above two mechanisms make up a _stack frame_: this is
 a section of the stack which holds the return address of the current active
 function, together with all its local variables.
 
@@ -409,7 +409,8 @@ On my machine I might get the following output:
 <1> No surprise here: this is the value of variable `a`
 
 <2> This is the size of the variable, in bytes. 8 bytes makes 64 bits, which
-    happens to be the default size for `int` types in Nim. So far so good.
+    happens to be the default size for `int` types in Nim on my machine. So far
+    so good.
 
 <3> This line shows a representation of variable `b`. `b` holds the address
     of variable `a`, which happens to live at address `0x300000`. In Nim an
@@ -433,7 +434,7 @@ The above can be represented by the following diagram:
             +---------------------------------------+
 
 
-=== Arrays
+=== Arrays and tuples
 
 todo
 
@@ -450,15 +451,15 @@ type Thing = object <1>
 
 var t: Thing <2>
 
-echo "size t   ", t.sizeof  <3>
 echo "size t.a ", t.a.sizeof
 echo "size t.b ", t.b.sizeof
 echo "size t.b ", t.c.sizeof
+echo "size t   ", t.sizeof  <3>
 
-echo "addr t   ", t.addr.repr  <4>
 echo "addr t.a ", t.a.addr.repr
 echo "addr t.b ", t.b.addr.repr
 echo "addr t.c ", t.c.addr.repr
+echo "addr t   ", t.addr.repr  <4>
 ----
 
 <1> The definition of our object type `Thing`, which holds integers of various
