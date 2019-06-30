@@ -322,7 +322,33 @@ echo a.addr.repr
 # ref 0x56274ece0c60 --> 0
 ----
 
-todo: explain poinert usage, automatic dereferencing
+==== Using pointers
+
+As briefly mentioned above, there are two types of pointers in Nim: 
+
+- `ptr T` for _untraced references_, aka _pointers_
+- `ref T` for _traced references_, for memory that is managed by Nim
+
+The `ptr T` pointer type is considered _unsafe_. Pointers point to manually
+allocated objects or to objects somewhere else in memory, and it is your taks
+as a programmer to make sure your pointers always point to valid data.
+
+In Nim you can use an empty array subscript `[]` to derefer a pointer,
+analogous to using the `*` prefix operator in C. The snippet below shows
+how to create an alias to an int and change its value.
+
+---
+var a = 20
+var p = a.addr <1>
+p[] = 30 <2>
+echo a  # 30
+---
+
+<1> `p` is now a pointer of type `ptr int`, pointing to the address of int `a`
+<2> Here the value of the memory `p` points to is changed 
+
+For object or tuple access, Nim will perform automatic dereferencing so the
+normal `.` access operator can be used just as with a normal object.
 
 
 === The stack: local variables
@@ -348,7 +374,7 @@ var t = Thing(a: 5, b: 18)
 ----
 
 
-=== The heap: managed pointers and the garbage collector
+=== The heap: traced references and the garbage collector
 
 In the previous sections we saw that pointers in Nim as returned by `addr()`
 are of the type `ptr T`, but we saw that `new` returns a `ref T`.
@@ -359,7 +385,7 @@ difference between the two:
 - a `ptr T` is just a pointer - a variable holding an adress which points to
   data living elsewhere.
 
-- a `ref T` is a _managed pointer_: this also is an address pointing to
+- a `ref T` is a _traced reference_: this also is an address pointing to
   something else, but Nim will keep track of data it points to for you, and
   make sure this will be freed when it is no longer needed.
 
@@ -731,9 +757,6 @@ ptr 0x9000d0 --> [len = 7, reserved = 12] <4>
     the 7th item, so the whole seq is moved to another place, and the allocation is
     scaled up to hold 12 elements.
 
-=== Tables
-
-todo
 
 
 
