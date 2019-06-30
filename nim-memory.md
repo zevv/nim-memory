@@ -709,7 +709,7 @@ ptr 0x9000d0 --> [len = 7, reserved = 12] <4>
       seq now holds 4 elements
 
     - the `reserved` field increased from 3 to 6. This is because Nim
-      increments seq and string storage in powers of two - this is more
+      doubles the storage size when doing a new allocation - this is more
       efficient when repeatedly adding data without having to resize the
       allocation for every `add()`
 
