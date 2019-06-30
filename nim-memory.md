@@ -589,7 +589,7 @@ What can be deduced from this?
 
 <1> The variable `a` itself is placed on the stack, which happens to be at
     address `0x300000` on my machine. A is some kind of pointer that points to
-    address `0x900048` which is on the heap! And this is where the actual seq
+    address `0x900000` which is on the heap! And this is where the actual seq
     lives.
 
 <2> This seq contains 3 elements, just as it should be.
@@ -607,20 +607,20 @@ by the elements of our seq:
 
               stack 
             +---------------------------------------+
- 0x300000   | 00 | 00 | 00 | 00 | 90 | 00 | 00 | 48 | a: seq[int]
+ 0x300000   | 00 | 00 | 00 | 00 | 90 | 00 | 00 | 00 | a: seq[int]
             +---------------------------------------+
                                 |
               heap              v
             +---------------------------------------+
- 0x900048   | ?? | ?? | ?? | ?? | ?? | ?? | ?? | ?? |
+ 0x900000   | ?? | ?? | ?? | ?? | ?? | ?? | ?? | ?? |
             +---------------------------------------+
- 0x900050   | ?? | ?? | ?? | ?? | ?? | ?? | ?? | ?? |
+ 0x900008   | ?? | ?? | ?? | ?? | ?? | ?? | ?? | ?? |
             +---------------------------------------+
- 0x900058   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 30 | a[0] = 0x30
+ 0x900010   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 30 | a[0] = 0x30
             +---------------------------------------+
- 0x900060   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 40 | a[1] = 0x40
+ 0x900018   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 40 | a[1] = 0x40
             +---------------------------------------+
- 0x900068   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 50 | a[2] = 0x50
+ 0x900020   | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 50 | a[2] = 0x50
             +---------------------------------------+
 
 This almost explains all of the seq, except for the 16 unknown bytes at the
@@ -664,7 +664,7 @@ echo b.repr
 When we print the result with `echo b.repr`, the output looks like this:
 
 ----
-ptr 0x900048 --> [len = 3, reserved = 3]
+ptr 0x900000 --> [len = 3, reserved = 3]
 ----
 
 There we have it: Our seq has a size of 3, and has reserved space for 3
@@ -674,53 +674,66 @@ are added to a seq.
 
 ==== Growing a seq
 
-The little snippet below creates a seq, and fills it with the numbers 0..7.
-Each iteration it will show what happens:
+The snippet below starts with the same seq, and then adds new elements. Each
+iteration it will print the seq header:
 
 ----
-var a: seq[int]
-echo a.repr
+type TGenericSeq = object
+  len, reserved: int
 
-for i in 0..7:
-  a.add i
-  echo a.addr.repr
+var a = @[10, 20, 30]
+echo cast[ptr TGenericSeq](a).repr
+a.add 40
+echo cast[ptr TGenericSeq](a).repr
+a.add 50
+echo cast[ptr TGenericSeq](a).repr
+a.add 60
+echo cast[ptr TGenericSeq](a).repr
+a.add 70
+echo cast[ptr TGenericSeq](a).repr
 ----
 
 Here is the output, see if you can spot the interesting bits:
 
 ----
-ref 0x300000 --> 0x900048@[0]  <1>
-ref 0x300000 --> 0x900078@[0, 1] <2>
-ref 0x300000 --> 0x9000c8@[0, 1, 2] <3>
-ref 0x300000 --> 0x9000c8@[0, 1, 2, 3]
-ref 0x300000 --> 0x9001b0@[0, 1, 2, 3, 4] <4>
-ref 0x300000 --> 0x9001b0@[0, 1, 2, 3, 4, 5]
-ref 0x300000 --> 0x9001b0@[0, 1, 2, 3, 4, 5, 6]
-ref 0x300000 --> 0x9001b0@[0, 1, 2, 3, 4, 5, 6, 7]
+ptr 0x900000 --> [len = 3, reserved = 3] <1>
+ptr 0x900070 --> [len = 4, reserved = 6] <2>
+ptr 0x900070 --> [len = 5, reserved = 6] <3>
+ptr 0x900070 --> [len = 6, reserved = 6] 
+ptr 0x9000d0 --> [len = 7, reserved = 12] <4>
 ----
 
-<1> Here Nim shows us the seq: the ref lives at address `0x300000`,
-    which is on the stack. The actual seq data is placed on the heap
-    at address `0x900048`
+<1> This is the original 3 element seq: it is stored on the heap at 
+    address `0x900000`, has a length of 3 elements, and reserved storage for
+    3 elements as well
 
-<2> Something happened here: the ref to our seq still lives a the same place
-    on the stack, but it now points to a different address! The reason for this
-    is that the inital memory allocation for the seq data on the heap was not
-    large enough to fit the new element, so Nim had to find a larger chunk of
-    memory to hold the data. It is likely that the allocator already reserved
-    the area directly behind the seq to something else, so it was not possible
-    to grow this area. Instead, a new allocation somewhere else on the heap was
-    made, the old data of the seq was copied from the old location to the new
-    location, and the new element was added.
+<2> One element was added, and a few notable things have happened: 
 
-<3> The same thing happens here when yet another element is added. Note that
-    for the next `add(3)`, no new allocation was done! The reason for this is
-    that Nim anticipates more data to be added to the seq, and grows its memory
-    area in powers of two: the block is now large enough to hold 4 elements
+    - the `len` field is increased to 4, which makes perfect sense because the
+      seq now holds 4 elements
+
+    - the `reserved` field increased from 3 to 6. This is because Nim
+      increments seq and string storage in powers of two - this is more
+      efficient when repeatedly adding data without having to resize the
+      allocation for every `add()`
+
+    - note that the address of the seq itself also changed!  The reason for
+      this is that the inital memory allocation for the seq data on the heap
+      was not large enough to fit the new element, so Nim had to find a larger
+      chunk of memory to hold the data. It is likely that the allocator already
+      reserved the area directly behind the seq to something else, so it was
+      not possible to grow this area. Instead, a new allocation somewhere else
+      on the heap was made, the old data of the seq was copied from the old
+      location to the new location, and the new element was added.
+
+<3> When adding the 4th element above, Nim resized the seq storage to hold 6
+    elements - this allows adding two more elements without having to make
+    a larger allocation. There are now 6 elements placed in the seq, with a total
+    reserved size for 6 elements.
 
 <4> And here the same happens once more: The block is not large enough to fit
-    the 5th item, so the whole seq is moved to another place, and the allocation is
-    scaled up to hold 8 elements.
+    the 7th item, so the whole seq is moved to another place, and the allocation is
+    scaled up to hold 12 elements.
 
 === Tables
 
