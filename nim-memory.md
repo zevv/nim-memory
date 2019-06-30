@@ -682,15 +682,11 @@ type TGenericSeq = object
   len, reserved: int
 
 var a = @[10, 20, 30]
-echo cast[ptr TGenericSeq](a).repr
-a.add 40
-echo cast[ptr TGenericSeq](a).repr
-a.add 50
-echo cast[ptr TGenericSeq](a).repr
-a.add 60
-echo cast[ptr TGenericSeq](a).repr
-a.add 70
-echo cast[ptr TGenericSeq](a).repr
+
+for i in 0..4:
+  echo cast[ptr TGenericSeq](a).repr
+  a.add i
+
 ----
 
 Here is the output, see if you can spot the interesting bits:
