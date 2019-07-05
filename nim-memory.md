@@ -766,6 +766,23 @@ ptr 0x9000d0 --> [len = 7, reserved = 12] <4>
     scaled up to hold 12 elements.
 
 
+== Conclusion
 
+This document only scratched the surface of how Nim's handles memory, there is
+a lot more to tell. Here are some subjects I think also deserve a chapter one
+day, but which I didn't get to write yet:
 
+- A more elaborate discussion on garbage collection, and the available GC
+  flavours in Nim.
+
+- Using Nim without a garbage collector / embedded systems with tight memory.
+
+- The new Nim runtime!
+
+- Memory usage in closures/iterators/async - locals do not always go on the stack.
+
+- FFI: Discussion and examples of passing data between C and Nim.
+
+This is a document in progress, any comments are much appreciated. The source
+can be found in github at https://github.com/zevv/nim-memory
 
