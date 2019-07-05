@@ -1,5 +1,5 @@
 
-= Nim memory
+= The Nim memory model
 Ico Doornekamp <nim@zevv.nl>
 :toc:
 :toclevels: 4
@@ -8,17 +8,14 @@ Ico Doornekamp <nim@zevv.nl>
 :stylesheet: style.css
 :nofooter:
 
-todo: better title!
-
 This is a document in progress, any comments are much appreciated. The source
 can be found in github at https://github.com/zevv/nim-memory
 
 == Introduction
 
-This is a small tutorial explaining how Nim stores data in memory (RAM). It
-will explain the essentials which every Nim programmer should know, but it will
-also dive deeper in the way Nim organizes its data structures like strings and
-seqs.
+This is a small tutorial explaining how Nim stores data in memory. It will
+explain the essentials which every Nim programmer should know, but it will also
+dive deeper in the way Nim organizes its data structures like strings and seqs.
 
 For most practical purposes, Nim will take care of all memory management for
 your program without bothering you with the details. As long as you stick to
@@ -65,7 +62,7 @@ level assembly instruction for doing this might look something like this:
 This is what the memory on address 0x100000 will look like after the above
 instruction completes, with each column representing a byte:
 
-               0    1    2    3   4 
+              00   01   02   03   04 
             +----+----+----+----+----
   0x100000  | 00 | 01 | 23 | 45 | ..
             +----+----+----+----+----
@@ -77,16 +74,26 @@ To complicate things a bit more, the actual order of bytes within a word varies
 between CPU types - some CPUs put the most significant byte first, while others
 put the least significant byte first. This is called the _endianess_ of a CPU.
 
-There is a lot to tell about endiannes, but just remember these few things,
-and you should generally be fine:
+There is a lot to tell about endiannes, but just remember these few things, and
+you should generally be fine:
 
 - Intel compatible CPUs (x86, amd64) are little endian. The integer 0x1234 is
-  stored with the *least* significant byte first: `0x34 0x21`
+  stored with the *least* significant byte first: 
+ 
+     00   01
+   +----+----+
+   | 34 | 21 |
+   +----+----+
 
 - ARM CPUs are big endian. The integer 0x1234 is stored with the *most*
-  significant byte first: `0x12 0x34`. Most network protocols serialize data in
+  significant byte first. Most network protocols serialize data in
   big endian order when sending it out on the network; this is why big endian
-  is also know as _network endian_.
+  is also know as _network endian_:
+ 
+     00   01
+   +----+----+
+   | 12 | 34 |
+   +----+----+
 
 - Most important of all: if you want to write portable code, do not ever
   make any assumptions about your machines endianess when writing binary data
@@ -319,10 +326,10 @@ will make use of `repr()` to nicely format a the type for us:
 ----
 var a: int
 echo a.addr.repr
-# ref 0x56274ece0c60 --> 0
+# ptr 0x56274ece0c60 --> 0
 ----
 
-==== Using pointers
+=== Using pointers
 
 As briefly mentioned above, there are two types of pointers in Nim: 
 
@@ -337,18 +344,23 @@ In Nim you can use an empty array subscript `[]` to derefer a pointer,
 analogous to using the `*` prefix operator in C. The snippet below shows
 how to create an alias to an int and change its value.
 
----
-var a = 20
-var p = a.addr <1>
-p[] = 30 <2>
-echo a  # 30
----
+----
+var a = 20 <1>
+var p = a.addr <2>
+p[] = 30 <3>
+echo a  # --> 30
+----
 
-<1> `p` is now a pointer of type `ptr int`, pointing to the address of int `a`
-<2> Here the value of the memory `p` points to is changed 
+<1> Here a normal variable `a` is declared and initialzed with the value 20
+<2> `p` is a pointer of type `ptr int`, pointing to the address of int `a`
+<3> The `[]` operator is used to _dereference_ the pointer p. As `p` is a pointer
+    of type `ptr int` which points to the memory address where `a` is stored,
+    dereferenced variable `p[]` is again of type int. The variables `a` and `p[]`
+    now refer to the exact same memory location, so assigning a value to `p[]`
+    will also change the value of `a`
 
-For object or tuple access, Nim will perform automatic dereferencing so the
-normal `.` access operator can be used just as with a normal object.
+For object or tuple access, Nim will perform automatic dereferencing for you:
+the normal `.` access operator can be used just as with a normal object.
 
 
 === The stack: local variables
@@ -429,7 +441,7 @@ On my machine I might get the following output:
 
   9  <1>
   8  <2>
-  ref 0x300000 --> 9 <3>
+  ptr 0x300000 --> 9 <3>
   8  <4>
 
 <1> No surprise here: this is the value of variable `a`
@@ -459,10 +471,6 @@ The above can be represented by the following diagram:
  0x300000:  | 00 | 00 | 00 | 00 | 00 | 00 | 00 | 09 | a: int = 9
             +---------------------------------------+
 
-
-=== Arrays and tuples
-
-todo
 
 
 === Compound types: objects
@@ -508,10 +516,10 @@ size t.a 4  <1>
 size t.b 1
 size t.b 2
 size t   8  <2>
-addr t   ref 0x300000 --> [a = 0, b = 0, c = 0]  <3>
-addr t.a ref 0x300000 --> 0  <4>
-addr t.b ref 0x300004 --> 0
-addr t.c ref 0x300006 --> 0  <5>
+addr t   ptr 0x300000 --> [a = 0, b = 0, c = 0]  <3>
+addr t.a ptr 0x300000 --> 0  <4>
+addr t.b ptr 0x300004 --> 0
+addr t.c ptr 0x300006 --> 0  <5>
 ----
 
 Lets go through the output:
@@ -605,10 +613,10 @@ echo a[1].addr.repr
 And here is the output on my machine:
 
 ----
-ref 0x300000 --> 0x900048@[0x30, 0x40, 0x50]  <1>
+ptr 0x300000 --> 0x900048@[0x30, 0x40, 0x50]  <1>
 3 <2>
-ref 0x900058 --> 0x30  <3>
-ref 0x900060 --> 0x40  <4>
+ptr 0x900058 --> 0x30  <3>
+ptr 0x900060 --> 0x40  <4>
 ----
 
 What can be deduced from this?
