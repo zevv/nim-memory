@@ -5,5 +5,5 @@ nim-memory.html: nim-memory.md style.css
 clean:
 	rm -f nim-memory.html
 
-div: nim-memory.html
-	todiv nim-memory.html style.css
+pub: nim-memory.html
+	scp nim-memory.html style.css ico@pruts.nl:/home/ico/websites/www.zevv.nl/nim-memory
