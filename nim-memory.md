@@ -313,6 +313,8 @@ to inspect how and where Nim stores your data:
 
 `sizeof(x)`:: Returns the size of variable `x` in bytes
 
+`typeof(x)`:: Returns the string representation of the type of variable `x`
+
 
 The result of `addr(x)` and `unsafeAddr(x)` on an object of type `T` has a
 result of type `ptr T`. Nim does not know how to print this by default, so we
