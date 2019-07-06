@@ -27,7 +27,7 @@ background, as a lot of it is not unique to the Nim language. In contrast, some
 things might be new to programmers coming from dynamic languages like Python or
 Javascript, where memory handling is more abstracted away.
 
-NOTE: Most - if not all - of this document applies to the C and C++ code generator,
+NOTE: Most -- if not all -- of this document applies to the C and C++ code generator,
 since the Javascript backend does not use raw memory but relies on Javascript
 objects instead.
 
@@ -70,21 +70,19 @@ To complicate things a bit more, the actual order of bytes within a word varies
 between CPU types - some CPUs put the most significant byte first, while others
 put the least significant byte first. This is called the _endianess_ of a CPU.
 
-There is a lot to tell about endiannes, but just remember these few things, and
-you should generally be fine:
-
-- Intel compatible CPUs (x86, amd64) are little endian. The integer 0x1234 is
-  stored with the *least* significant byte first: 
+- Most CPUs these days (Intel compatible, x86, amd64, most ARM families) are
+  little endian. The integer 0x1234 is stored with the *least* significant byte
+  first: 
  
      00   01
    +----+----+
    | 34 | 21 |
    +----+----+
 
-- ARM CPUs are big endian. The integer 0x1234 is stored with the *most*
-  significant byte first. Most network protocols serialize data in
-  big endian order when sending it out on the network; this is why big endian
-  is also know as _network endian_:
+- Some other CPUs like Freescale or OpenRISC are big endian. The integer 0x1234
+  is stored with the *most* significant byte first. Most network protocols
+  serialize data in big endian order when sending it out on the network; this
+  is why big endian is also know as _network endian_:
  
      00   01
    +----+----+
@@ -134,7 +132,7 @@ mechanism itself.
   :    free      : v on the bottom
 
 The administration for a stack is pretty simple: the program needs to keep
-track of only one address which points to the current stack bottom - this is
+track of only one address which points to the current stack bottom -- this is
 commonly know as the _stack pointer_. When data is added to the stack, it is
 copied in place and the stack pointer is decreased. When data is removed from
 the stack, it is copied out and the stack pointer is again increased.
@@ -150,7 +148,7 @@ different purposes:
 
 - the compiler also uses the stack for a different kind of bookkeeping: every
   time a function is called, the address of the next instruction after the
-  `call` instruction is placed on the stack - this is the _return address_.
+  `call` instruction is placed on the stack -- this is the _return address_.
   When the function returns, it finds that address on the stack, and jumps to
   it.
 
@@ -290,7 +288,7 @@ var t = new Thing
 The above snippet will allocate memory on the heap to store an object of type
 `Thing` The _address_ of the newly allocated memory block is returned by `new`,
 which is now of type `ref Thing`. A `ref` is a special kind of pointer which is
-generally managed by Nim for you. More on this in the section 'The heap' below.
+generally managed by Nim for you. More on this below.
 
 
 == Memory organization in Nim
@@ -310,7 +308,7 @@ to inspect how and where Nim stores your data:
 
 `unsafeAddr(x)`:: This proc is basically the same as `addr()`, but it can be
                   used even if Nim thinks it would not be safe to get the address
-		  of an object - more on this later.
+		  of an object -- more on this later.
 
 `sizeof(x)`:: Returns the size of variable `x` in bytes
 
@@ -377,8 +375,8 @@ type Thing = object
 
 var a: int
 var b = 14
-var t: Thing
-var t = Thing(a: 5, b: 18)
+var c: Thing
+var d = Thing(a: 5, b: 18)
 ----
 
 
@@ -390,7 +388,7 @@ are of the type `ptr T`, but we saw that `new` returns a `ref T`.
 While both `ptr` and `ref` are pointers to data, there is an imporant
 difference between the two:
 
-- a `ptr T` is just a pointer - a variable holding an adress which points to
+- a `ptr T` is just a pointer -- a variable holding an adress which points to
   data living elsewhere. You as the programmer are responsible for making sure
   this pointer is referencing to valid memory when you use it.
 
@@ -399,12 +397,12 @@ difference between the two:
   make sure this will be freed when it is no longer needed.
 
 
-The only way to acquire a `ref T` pointer is to allocate the memory use
-`new()`. Nim will reserve the memory for you, and also will start keeping track
-of where in the code this data is referenced. When the Nim runtime sees that
-the data is no longer referred to, it knows it is safe to discard it and it
-will automatically free it for you. This is known as _garbage collection_, or
-_GC_ for short.
+The only way to acquire a `ref T` pointer is to allocate the memory using the
+`new()` proc. Nim will reserve the memory for you, and also will start keeping
+track of where in the code this data is referenced. When the Nim runtime sees
+that the data is no longer referred to, it knows it is safe to discard it and
+it will automatically free it for you. This is known as _garbage collection_,
+or _GC_ for short.
 
 
 == How Nim stores data in memory
@@ -484,7 +482,7 @@ var t: Thing <2>
 
 echo "size t.a ", t.a.sizeof
 echo "size t.b ", t.b.sizeof
-echo "size t.b ", t.c.sizeof
+echo "size t.c ", t.c.sizeof
 echo "size t   ", t.sizeof  <3>
 
 echo "addr t.a ", t.a.addr.repr
@@ -511,7 +509,7 @@ Here is the output on my machine:
 ----
 size t.a 4  <1>
 size t.b 1
-size t.b 2
+size t.c 2
 size t   8  <2>
 addr t   ptr 0x300000 --> [a = 0, b = 0, c = 0]  <3>
 addr t.a ptr 0x300000 --> 0  <4>
@@ -562,7 +560,7 @@ architecture's word size), the CPU can access the memory more efficiently. This
 usually results in faster code, at the price of wasting some memory.
 
 (You can hint the Nim compiler not to do alignment but to place the fields of
-an object back-to-back in memory using the `{.packed.}` pragma - refer to the
+an object back-to-back in memory using the `{.packed.}` pragma -- refer to the
 Nim language manual for details)
 
 
@@ -590,9 +588,8 @@ var a = @[ 30, 40, 50 ]
 Let's ask Nim what the type of variable `a` is:
 
 ----
-import typetraits
 var a = @[ 30, 40, 50 ]
-echo a.type.name   # -> seq[int]
+echo typeof(a)   # -> seq[int]
 ----
 
 We see the type is `seq[int]`, which is what was expected.
@@ -610,10 +607,10 @@ echo a[1].addr.repr
 And here is the output on my machine:
 
 ----
-ptr 0x300000 --> 0x900048@[0x30, 0x40, 0x50]  <1>
+ptr 0x300000 --> 0x900000@[0x30, 0x40, 0x50]  <1>
 3 <2>
-ptr 0x900058 --> 0x30  <3>
-ptr 0x900060 --> 0x40  <4>
+ptr 0x900010 --> 0x30  <3>
+ptr 0x900018 --> 0x40  <4>
 ----
 
 What can be deduced from this?
@@ -626,10 +623,10 @@ What can be deduced from this?
 <2> This seq contains 3 elements, just as it should be.
 
 <3> `a[0]` is the first element of the seq. Its value is `0x30`, and i is stored
-    at address `0x900058`, which is right after the seq itself
+    at address `0x900010`, which is right after the seq itself
 
-<4> The second item in the seq is `a[1]`, which is placed at address `0x900060`.
-    This makes perfect sense, as the size of an `int` in nim is 8 bytes, and all
+<4> The second item in the seq is `a[1]`, which is placed at address `0x900018`.
+    This makes perfect sense, as the size of an `int` is 8 bytes, and all
     ints in the seq are placed back-to-back in memory.
 
 Let's make a little drawing again. We know `a` is a pointer living on the
@@ -672,7 +669,7 @@ type TGenericSeq = object
     that is how many elements are in it.
 
 <2> The `reserved` field is used to keep track of the actual size of the storage
-    inside the seq - for performance reasons Nim might reserve a larger space
+    inside the seq -- for performance reasons Nim might reserve a larger space
     ahead of time to avoid resizing the seq when new items need to be added.
 
 Let's do a little experiment to inspect what is in the our seq header (unsafe
@@ -754,7 +751,7 @@ ptr 0x9000d0 --> [len = 7, reserved = 12] <4>
       location to the new location, and the new element was added.
 
 <3> When adding the 4th element above, Nim resized the seq storage to hold 6
-    elements - this allows adding two more elements without having to make
+    elements -- this allows adding two more elements without having to make
     a larger allocation. There are now 6 elements placed in the seq, with a total
     reserved size for 6 elements.
 
@@ -776,7 +773,7 @@ day, but which I didn't come to write yet:
 
 - The new Nim runtime!
 
-- Memory usage in closures/iterators/async - locals do not always go on the stack.
+- Memory usage in closures/iterators/async -- locals do not always go on the stack.
 
 - FFI: Discussion and examples of passing data between C and Nim.
 
