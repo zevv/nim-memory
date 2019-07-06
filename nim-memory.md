@@ -1,7 +1,6 @@
 
 = The Nim memory model
-Ico Doornekamp <nim@zevv.nl>
-:toc:
+:toc: left
 :toclevels: 4
 :icons: font
 :doctype: book
