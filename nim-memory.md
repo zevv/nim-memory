@@ -7,9 +7,6 @@
 :stylesheet: style.css
 :nofooter:
 
-This is a document in progress, any comments are much appreciated. The source
-can be found in github at https://github.com/zevv/nim-memory
-
 == Introduction
 
 This is a small tutorial explaining how Nim stores data in memory. It will
