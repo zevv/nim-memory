@@ -395,7 +395,8 @@ While both `ptr` and `ref` are pointers to data, there is an imporant
 difference between the two:
 
 - a `ptr T` is just a pointer - a variable holding an adress which points to
-  data living elsewhere.
+  data living elsewhere. You as the programmer are responsible for making sure
+  this pointer is referencing to valid memory when you use it.
 
 - a `ref T` is a _traced reference_: this also is an address pointing to
   something else, but Nim will keep track of data it points to for you, and
@@ -770,7 +771,7 @@ ptr 0x9000d0 --> [len = 7, reserved = 12] <4>
 
 This document only scratched the surface of how Nim's handles memory, there is
 a lot more to tell. Here are some subjects I think also deserve a chapter one
-day, but which I didn't get to write yet:
+day, but which I didn't come to write yet:
 
 - A more elaborate discussion on garbage collection, and the available GC
   flavours in Nim.
