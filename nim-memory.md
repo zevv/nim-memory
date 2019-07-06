@@ -152,7 +152,7 @@ different purposes:
   When the function returns, it finds that address on the stack, and jumps to
   it.
 
-The combinated data of the above two mechanisms make up a _stack frame_: this is
+The combination data of the above two mechanisms make up a _stack frame_: this is
 a section of the stack which holds the return address of the current active
 function, together with all its local variables.
 
@@ -267,7 +267,7 @@ The only way to effectively reuse the hole is if the next allocation is of the
 exact same size of the hole.
 
 Heavy use of a heap with a lot of different sized objects might lead to a
-phenomenom called _fragmentation_. This means that the allocator is not able to
+phenomenon called _fragmentation_. This means that the allocator is not able to
 effectively use 100% of the arena size to fulfil allocation requests,
 effectively wasting a part of the available memory.
 
@@ -288,7 +288,8 @@ var t = new Thing
 The above snippet will allocate memory on the heap to store an object of type
 `Thing` The _address_ of the newly allocated memory block is returned by `new`,
 which is now of type `ref Thing`. A `ref` is a special kind of pointer which is
-generally managed by Nim for you. More on this below.
+generally managed by Nim for you. More on this in the section
+<<Traced references and the garbage collector>>
 
 
 == Memory organization in Nim
@@ -315,7 +316,7 @@ to inspect how and where Nim stores your data:
 
 The result of `addr(x)` and `unsafeAddr(x)` on an object of type `T` has a
 result of type `ptr T`. Nim does not know how to print this by default, so we
-will make use of `repr()` to nicely format a the type for us:
+will make use of `repr()` to nicely format the type for us:
 
 ----
 var a: int
@@ -325,18 +326,24 @@ echo a.addr.repr
 
 === Using pointers
 
-As briefly mentioned above, there are two types of pointers in Nim: 
+Basically, a pointer is nothing more then a special type of variable which
+holds a memory address -- it points to something else in memory. As briefly
+mentioned above, there are two types of pointers in Nim: 
 
 - `ptr T` for _untraced references_, aka _pointers_
 - `ref T` for _traced references_, for memory that is managed by Nim
 
 The `ptr T` pointer type is considered _unsafe_. Pointers point to manually
-allocated objects or to objects somewhere else in memory, and it is your taks
+allocated objects or to objects somewhere else in memory, and it is your task
 as a programmer to make sure your pointers always point to valid data.
 
-In Nim you can use an empty array subscript `[]` to derefer a pointer,
-analogous to using the `*` prefix operator in C. The snippet below shows
-how to create an alias to an int and change its value.
+When you want to access the data in the memory that the pointer points to --
+the contents of the address with that numerical index -- you need to
+_dereference_ (or in short, _deref_) the pointer.
+
+In Nim you can use an empty array subscript `[]` to do this, analogous to using
+the `*` prefix operator in C. The snippet below shows how to create an alias to
+an int and change its value.
 
 ----
 var a = 20 <1>
@@ -345,9 +352,9 @@ p[] = 30 <3>
 echo a  # --> 30
 ----
 
-<1> Here a normal variable `a` is declared and initialzed with the value 20
+<1> Here a normal variable `a` is declared and initialized with the value 20
 <2> `p` is a pointer of type `ptr int`, pointing to the address of int `a`
-<3> The `[]` operator is used to _dereference_ the pointer p. As `p` is a pointer
+<3> The `[]` operator is used to dereference the pointer p. As `p` is a pointer
     of type `ptr int` which points to the memory address where `a` is stored,
     dereferenced variable `p[]` is again of type int. The variables `a` and `p[]`
     now refer to the exact same memory location, so assigning a value to `p[]`
@@ -380,15 +387,15 @@ var d = Thing(a: 5, b: 18)
 ----
 
 
-=== The heap: traced references and the garbage collector
+=== Traced references and the garbage collector
 
 In the previous sections we saw that pointers in Nim as returned by `addr()`
 are of the type `ptr T`, but we saw that `new` returns a `ref T`.
 
-While both `ptr` and `ref` are pointers to data, there is an imporant
+While both `ptr` and `ref` are pointers to data, there is an important
 difference between the two:
 
-- a `ptr T` is just a pointer -- a variable holding an adress which points to
+- a `ptr T` is just a pointer -- a variable holding an address which points to
   data living elsewhere. You as the programmer are responsible for making sure
   this pointer is referencing to valid memory when you use it.
 
@@ -561,7 +568,7 @@ usually results in faster code, at the price of wasting some memory.
 
 (You can hint the Nim compiler not to do alignment but to place the fields of
 an object back-to-back in memory using the `{.packed.}` pragma -- refer to the
-Nim language manual for details)
+link:https://nim-lang.github.io/Nim/manual.html#[Nim language manual] for details)
 
 
 
