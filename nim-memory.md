@@ -76,7 +76,7 @@ put the least significant byte first. This is called the _endianess_ of a CPU.
  
      00   01
    +----+----+
-   | 34 | 21 |
+   | 34 | 12 |
    +----+----+
 
 - Some other CPUs like Freescale or OpenRISC are big endian. The integer 0x1234
@@ -787,5 +787,5 @@ day, but which I didn't come to write yet:
 - FFI: Discussion and examples of passing data between C and Nim.
 
 This is a document in progress, any comments are much appreciated. The source
-can be found in github at https://github.com/zevv/nim-memory
+can be found on github at https://github.com/zevv/nim-memory
 
