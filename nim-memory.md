@@ -586,7 +586,7 @@ basically a long row of objects of the same type (chars for a strings, any
 other type for seqs). What is different for these types is that they can
 dynamically grow or shrink in memory.
 
-==== Seq internals
+==== Let's talk about seqs
 
 Lets create a `seq` and do some experiments with it:
 
