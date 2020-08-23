@@ -1,9 +1,13 @@
 
-nim-memory.html: nim-memory.md style.css
-	asciidoctor nim-memory.md
+HTML := nim-memory.html nim-arc.html
+
+all: $(HTML)
+
+%.html: %.md style.css
+	asciidoctor $<
 
 clean:
-	rm -f nim-memory.html
+	rm -f $(HTML)
 
 pub: nim-memory.html
 	scp nim-memory.html style.css ico@pruts.nl:/home/ico/websites/www.zevv.nl/nim-memory
