@@ -33,14 +33,14 @@ Refs are originally managed in Nim by a _garbage collector_, or _GC_ in short.
 
 There are many types of garbage collectors, but basically they all operate in a
 similar way: every now and then your program is briefly interrupted, and the
-garbage collector takes control. It will then look at all allocated blocks in
-memory and try to find which of these are no longer referenced, e.g, there are
-no longer any pointers referencing the memory block. When a block is found that
-no one is pointing to, the GC figures it is safe to free this block.
+garbage collector takes control. It will then look at allocated blocks in
+memory and try to find which of these are no longer in use, e.g, there are
+no longer any pointers referencing that block. When a block is found that
+no one is pointing to, the GC knows it is safe to free it.
 
 GC's are cool because they release the programmer of the burden of keeping
-track of memory lifetime, typically leading to safer code (no free-after-use)
-and less memory leaks.
+track of memory, typically leading to safer code (no free-after-use) and less
+memory leaks.
 
 There are some downsides to using a GC however:
 
@@ -62,9 +62,9 @@ There are some downsides to using a GC however:
 
 == Introducing: ARC
 
-With Nim version x.y, a new model for memory management was introduced, called
-_ARC_. The goal for ARC is to do everything a garbage collector can do, but do
-it better - much better.
+With Nim version 1.2, a new model for memory management was introduced, called
+_ARC_. With ARC, the compiler got much smarter about memory, so that garbage
+collection is no longer needed.
 
 ARC manages your memory in a totally different way than a garbage collector does.
 Instead of periodically interrupting the program and scan for unreferenced memory,
@@ -81,11 +81,11 @@ These points will be elaborated on in the next sections.
 
 With ARC, Nim will keep track of some additional data for each managed memory
 block. Part of this data is the _reference count_ (also called _refcount_, or
-_rc_) of the memory block. The refcount simply is a counter which keeps track
+_rc_) of the memory block. The refcount simply is a integer which keeps track
 of _how many pointers to the memory block_ exist. Nim will make sure this
 counter is increased every time a pointer is copied, and decreased every time a
 pointer is "lost". You can lose a pointer for example when it goes out of
-scope, or when it is stored in another object that is itself destroyed.
+scope, or when it was stored in another object that is itself destroyed.
 
 When the last pointer to an object goes away, the reference counter will drop
 to 0. This means that no one is referencing this memory block anymore, so it
@@ -95,5 +95,26 @@ _destructor_.
 
 === Destructors
 
-A _destructor_ is special Nim proc that gets called by Nim when the last
-reference to an object goes away. 
+A _destructor_ is a proc that gets called by Nim when the reference counter
+drops to 0. Every type has its own destructors, the compiler will generate
+default destructors for you that do the right thing if you do not define one.
+
+Destructors are implemented by a proc called `=destroy` and look like this:
+
+----
+proc `=destroy(x: var T)
+----
+
+
+TODO: tell about what a destructor should do
+
+
+=== Move semantics
+
+The above two concepts are basically all that is needed for managing memory:
+keep track of how many pointers reference a block, and free the block when
+there are no more references. 
+
+
+
+
