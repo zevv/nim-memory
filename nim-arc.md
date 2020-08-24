@@ -8,8 +8,9 @@
 :nofooter:
 
 
-Work in progress. The goal of this document is to make a friendly explanation of ARC
-and its implications for the programmer. The target audience is a bit mixed:
+This is a work in progress. The goal of this document is to make a friendly
+explanation of ARC and its implications for the programmer. The target audience
+is mixed:
 
 - experience Nim users that have heard of ARC but did not yet try or switch because
   they are not quite sure what all the fuzz is about
@@ -137,9 +138,17 @@ under certain conditions, to turn expensive memory copies into cheap _moves_.
 
 === Last use
 
+TODO
+
 === Return value optimzation
+
+TODO
 
 === Sinks
 
+TODO
+
 === Lents
+
+TODO
 
