@@ -89,10 +89,10 @@ put the least significant byte first. This is called the _endianess_ of a CPU.
    | 12 | 34 |
    +----+----+
 
-- Most important of all: if you want to write portable code, do not ever
-  make any assumptions about your machines endianess when writing binary data
-  to disk or over the network and make sure to explicitly convert your data
-  to the proper endianess.
+Most important of all: if you want to write portable code, do not ever
+make any assumptions about your machines endianess when writing binary data
+to disk or over the network and make sure to explicitly convert your data
+to the proper endianess.
 
 
 == Two ways to organize memory
