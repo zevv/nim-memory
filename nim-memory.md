@@ -494,10 +494,10 @@ echo "size t.b ", t.b.sizeof
 echo "size t.c ", t.c.sizeof
 echo "size t   ", t.sizeof  <3>
 
+echo "addr t   ", t.addr.repr  <4>
 echo "addr t.a ", t.a.addr.repr
 echo "addr t.b ", t.b.addr.repr
 echo "addr t.c ", t.c.addr.repr
-echo "addr t   ", t.addr.repr  <4>
 ----
 
 <1> The definition of our object type `Thing`, which holds integers of various
@@ -607,7 +607,7 @@ Now, lets add some code to see how Nim stores the data:
 
 ----
 var a = @[ 0x30, 0x40, 0x50 ]
-echo a.repr
+echo a.addr.repr
 echo a.len
 echo a[0].addr.repr
 echo a[1].addr.repr
@@ -631,7 +631,7 @@ What can be deduced from this?
 
 <2> This seq contains 3 elements, just as it should be.
 
-<3> `a[0]` is the first element of the seq. Its value is `0x30`, and i is stored
+<3> `a[0]` is the first element of the seq. Its value is `0x30`, and it is stored
     at address `0x900010`, which is right after the seq itself
 
 <4> The second item in the seq is `a[1]`, which is placed at address `0x900018`.
