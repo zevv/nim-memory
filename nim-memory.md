@@ -458,7 +458,7 @@ On my machine I might get the following output:
     of variable `a`, which happens to live at address `0x300000`. In Nim an
     address is known as a _ref_ or a _pointer_.
 
-<4> `b` itself is also a variable, which is not of the type `ptr int`. On
+<4> `b` itself is also a variable, which is of the type `ptr int`. On
     my machine memory addresses also have a size of 64 bit, which equals 8
     bytes.
 
